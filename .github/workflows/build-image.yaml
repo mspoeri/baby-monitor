@@ -22,7 +22,7 @@ jobs:
       - name: Determine version
         id: version
         env:
-          VERSION: 0.0.1
+          VERSION: 0.0.2
         run: |
           # Check if triggered by a pull request by checking if ${{ github.event.number }} is set
             if [ -n "${{ github.event.number }}" ]; then
@@ -35,7 +35,7 @@ jobs:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
         with:
-          platforms: linux/arm/v6, linux/arm/v7, linux/arm64
+          platforms: linux/arm/v6, linux/arm/v7, linux/arm64/v8
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
         with:
