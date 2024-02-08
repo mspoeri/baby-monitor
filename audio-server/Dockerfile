@@ -1,5 +1,5 @@
 # Use an official Node.js runtime as the base image
-FROM golang:1.21-alpine as builder
+FROM golang:1.22-alpine as builder
 
 WORKDIR /tmp/build
 
@@ -9,7 +9,12 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o /tmp/build/proxy-server ./cmd/ffmpeg-pr
 
 FROM alpine:3.19
 
-RUN apk update && apk add ffmpeg alsa-utils
+RUN apk update && apk add ffmpeg linux-headers alsaconf alsa-lib alsa-utils
+
+RUN echo "snd_pcm" >> /etc/modules && \
+    echo "snd_seq" >> /etc/modules && \
+    echo "snd_seq_device" >> /etc/modules && \
+    echo "snd_usb_audio" >> /etc/modules
 
 # Set the working directory in the container to /app
 WORKDIR /app
