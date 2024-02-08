@@ -47,7 +47,7 @@
     <h1>Baby Monitor</h1>
     <img id="cam" src="http://baby-monitor.local:8080/cam_pic.php" alt="Camera Image">
     <audio id="audio" controls autoplay>
-        <source src="http://baby-monitor.local:8084/stream" type="audio/mp3">
+        <source src="http://baby-monitor.local:8081/stream" type="audio/wav">
         Your browser does not support the audio tag.
     </audio>
     <canvas id="canvas"></canvas>
@@ -92,6 +92,12 @@
         audio.onplay = function () {
             draw();
         }
+
+        audio.onerror = function() {
+            console.log('An error occurred with the audio stream, attempting to reload...');
+            audio.load();
+            audio.play();
+        };
 
         setInterval(function () {
             cam.src = "http://baby-monitor.local:8080/cam_pic.php?" + new Date().getTime();
