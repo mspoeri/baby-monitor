@@ -14,6 +14,11 @@ import (
 func main() {
 
 	http.HandleFunc("/stream", func(w http.ResponseWriter, r *http.Request) {
+		slog.Info("Streaming audio")
+		defer func() {
+			slog.Info("Streaming audio finished")
+		}()
+
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "GET")
 		w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding")
@@ -63,7 +68,7 @@ func main() {
 				}
 				return
 			}
-			slog.Debug("io.Copy wrote", n, "bytes")
+			slog.Info("io.Copy wrote", n, "bytes")
 		}()
 
 		err = cmd.Wait()
