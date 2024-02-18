@@ -7,7 +7,7 @@
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
-            background-color: #f0f0f0;
+            background-color: #000;
         }
 
         .container {
@@ -32,13 +32,22 @@
             display: none;
             width: 80%;
             margin: 20px auto;
+            background-color: #333; /* Change the background color to match the headline */
+            color: #333;
+        }
+
+        #audio::-webkit-media-controls-panel {
+            background-color: #333; /* Change the background color to match the headline */
+            color: #fff; /* Change the color of the text and controls to white for visibility */
         }
 
         #canvas {
             display: block;
-            width: 100%;
+            width: 80%; /* Reduce the width to 80% */
             height: 200px;
             background-color: #333;
+            margin: 0 auto; /* Center the canvas */
+            padding: 20px; /* Add some padding */
         }
 
         @media (min-width: 1280px) {
@@ -52,7 +61,7 @@
 <body>
 <div class="container">
     <h1>Baby Monitor</h1>
-    <!--    <img id="cam" src="http://baby-monitor.local:8080/cam_pic.php" alt="Camera Image">-->
+    <img id="cam" src="http://baby-monitor.local:8082/cam_pic.php" alt="Camera Image">
     <audio id="audio" controls crossOrigin="anonymous">
         <source src="http://baby-monitor.local:8080/stream" type="audio/wav">
         Your browser does not support the audio tag.
@@ -76,33 +85,77 @@
         audio.style.display = 'block';
 
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        analyser = audioContext.createAnalyser();
-        source = audioContext.createMediaElementSource(audio);
-        source.connect(analyser);
-        analyser.connect(audioContext.destination);
+        let analyserHighRes = audioContext.createAnalyser();
+        let analyserLowRes = audioContext.createAnalyser();
 
-        analyser.fftSize = 256;
-        let bufferLength = analyser.frequencyBinCount;
-        let dataArray = new Uint8Array(bufferLength);
+        source = audioContext.createMediaElementSource(audio);
+        source.connect(analyserHighRes);
+        source.connect(analyserLowRes);
+        source.connect(audioContext.destination);
+        analyserHighRes.fftSize = 2048; // Higher resolution for 0-8kHz
+        analyserLowRes.fftSize = 512; // Lower resolution for 8-44kHz
+
+        let bufferLengthHighRes = analyserHighRes.frequencyBinCount;
+        let bufferLengthLowRes = analyserLowRes.frequencyBinCount;
+
+        let dataArrayHighRes = new Uint8Array(bufferLengthHighRes);
+        let dataArrayLowRes = new Uint8Array(bufferLengthLowRes);
+
+        // Calculate the number of bins for the 0-8kHz range
+        let maxFrequency = 8000;
+        let binSizeHighRes = audioContext.sampleRate / 2 / bufferLengthHighRes; // Frequency each bin represents
+        let maxBinHighRes = Math.ceil(maxFrequency / binSizeHighRes);
 
         function draw() {
             requestAnimationFrame(draw);
-            analyser.getByteFrequencyData(dataArray);
+            analyserHighRes.getByteFrequencyData(dataArrayHighRes);
+            analyserLowRes.getByteFrequencyData(dataArrayLowRes);
 
             context.fillStyle = 'rgb(0, 0, 0)';
             context.fillRect(0, 0, canvas.width, canvas.height);
 
-            let barWidth = (canvas.width / bufferLength) * 2.5;
+            let barWidthHighRes = (canvas.width / maxBinHighRes) * 0.8; // Make bars thinner
+            let barWidthLowRes = (canvas.width / bufferLengthLowRes) * 0.8; // Make bars thinner
             let barHeight;
             let x = 0;
 
-            for (let i = 0; i < bufferLength; i++) {
-                barHeight = dataArray[i];
+            // Only loop up to maxBin for high resolution data
+            for (let i = 0; i < maxBinHighRes; i++) {
+                barHeight = dataArrayHighRes[i];
 
-                context.fillStyle = 'rgb(' + (barHeight + 100) + ',50,50)';
-                context.fillRect(x, canvas.height - barHeight / 2, barWidth, barHeight / 2);
+                let gradient = context.createLinearGradient(0, 0, 0, canvas.height);
+                gradient.addColorStop(0, 'yellow');
+                gradient.addColorStop(1, 'red');
+                context.fillStyle = gradient;
+                context.fillRect(x, canvas.height - barHeight / 2, barWidthHighRes, barHeight / 2);
 
-                x += barWidth + 1;
+                x += barWidthHighRes + 2; // Add some space between bars
+
+
+                if (i % 20 === 0) { // Only label every 10th bar
+                    let frequency = Math.round(i * binSizeHighRes);
+                    context.fillStyle = 'rgb(255, 255, 255)'; // Set the text color to white for visibility
+                    context.fillText(frequency + 'Hz', x, canvas.height - barHeight / 2 - 5); // Position the label above the bar
+                }
+            }
+
+            // Loop through all bins for low resolution data
+            for (let i = 0; i < bufferLengthLowRes; i++) {
+                barHeight = dataArrayLowRes[i];
+
+                let gradient = context.createLinearGradient(0, 0, 0, canvas.height);
+                gradient.addColorStop(0, 'yellow');
+                gradient.addColorStop(1, 'red');
+                context.fillStyle = gradient;
+                context.fillRect(x, canvas.height - barHeight / 2, barWidthLowRes, barHeight / 2);
+
+                x += barWidthLowRes + 2; // Add some space between bars
+
+                if (i % 20 === 0) { // Only label every 10th bar
+                    let frequency = Math.round((i + maxBinHighRes) * binSizeHighRes);
+                    context.fillStyle = 'rgb(255, 255, 255)'; // Set the text color to white for visibility
+                    context.fillText(frequency + 'Hz', x, canvas.height - barHeight / 2 - 5); // Position the label above the bar
+                }
             }
         }
 
@@ -117,7 +170,7 @@
         };
 
         setInterval(function () {
-            // cam.src = "http://baby-monitor.local:8080/cam_pic.php?" + new Date().getTime();
+            cam.src = "http://baby-monitor.local:8082/cam_pic.php?" + new Date().getTime();
         }, 100);
 
         audio.play();
