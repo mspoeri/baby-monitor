@@ -111,3 +111,50 @@ jobs:
         with:
           name: ${{ steps.patch-artifact-name.outputs.patched }}
           path: ./audio-server
+
+
+  tag:
+    name: Tag Release
+    runs-on: ubuntu-22.04
+    permissions: write-all
+    outputs:
+      new_tag: ${{ steps.tag_version.outputs.new_tag }}
+      changelog: ${{ steps.tag_version.outputs.changelog }}
+    if: ${{ github.event_name == 'push' }}
+    steps:
+      - name: Create Tag
+        id: tag_version
+        uses: mathieudutour/github-tag-action@v6.1
+        with:
+          github_token: ${{ github.token }}
+          default_bump: minor
+          create_annotated_tag: true
+          tag_prefix: ""
+
+  release:
+    runs-on: ubuntu-22.04
+    permissions: write-all
+    needs: [tag]
+    if: ${{ github.event_name == 'push' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download Binaries
+        uses: actions/download-artifact@v4
+        id: download-binaries
+        with:
+          github-token: ${{ github.token }}
+          pattern: "audio-server-*"
+          path: "./bin"
+          merge-multiple: true
+      - name: Create Release
+        uses: ncipollo/release-action@v1
+        id: create-release
+        with:
+          tag: ${{ needs.tag.outputs.new_tag }}
+          name: ${{ needs.tag.outputs.new_tag }} - Release
+          body: ${{ needs.tag.outputs.changelog }}
+          token: ${{ github.token }}
+          prerelease: false
+          artifacts: >
+            ${{ steps.download-binaries.outputs.download-path }}/**/*
+            ui/index.html
