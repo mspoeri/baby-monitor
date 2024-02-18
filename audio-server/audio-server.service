@@ -1,0 +1,14 @@
+[Unit]
+Description=Auto Start Audio Server
+After=multi-user.target
+
+[Service]
+Type=simple
+ExecStartPre=/usr/bin/amixer -c 1 -q set 'Mic',0 100%
+ExecStart=/usr/bin/audio-server
+User=baby-monitor-admin
+WorkingDirectory=/home/baby-monitor-admin
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
