@@ -9,32 +9,38 @@
             padding: 0;
             background-color: #f0f0f0;
         }
+
         .container {
             max-width: 1280px;
             margin: 0 auto;
         }
+
         h1 {
             text-align: center;
             padding: 20px;
             background-color: #333;
             color: #fff;
         }
+
         #cam {
             display: block;
             width: 100%;
             height: auto;
         }
+
         #audio {
-            display: block;
+            display: none;
             width: 80%;
             margin: 20px auto;
         }
+
         #canvas {
             display: block;
             width: 100%;
             height: 200px;
             background-color: #333;
         }
+
         @media (min-width: 1280px) {
             .container {
                 padding: 0 10%;
@@ -42,25 +48,36 @@
         }
     </style>
 </head>
+
 <body>
 <div class="container">
     <h1>Baby Monitor</h1>
-    <img id="cam" src="http://baby-monitor.local:8080/cam_pic.php" alt="Camera Image">
-    <audio id="audio" controls autoplay>
-        <source src="http://baby-monitor.local:8081/stream" type="audio/wav">
+    <!--    <img id="cam" src="http://baby-monitor.local:8080/cam_pic.php" alt="Camera Image">-->
+    <audio id="audio" controls crossOrigin="anonymous">
+        <source src="http://baby-monitor.local:8080/stream" type="audio/wav">
         Your browser does not support the audio tag.
     </audio>
+    <button id="startButton">Start</button>
     <canvas id="canvas"></canvas>
 </div>
-    <script>
-        let audio = document.getElementById('audio');
-        let canvas = document.getElementById('canvas');
-        let context = canvas.getContext('2d');
-        let cam = document.getElementById('cam');
+<script>
+    let startButton = document.getElementById('startButton');
+    let audio = document.getElementById('audio');
+    let canvas = document.getElementById('canvas');
+    let context = canvas.getContext('2d');
+    let cam = document.getElementById('cam');
 
-        let audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        let analyser = audioContext.createAnalyser();
-        let source = audioContext.createMediaElementSource(audio);
+    let audioContext;
+    let analyser;
+    let source;
+
+    startButton.onclick = function () {
+        startButton.style.display = 'none';
+        audio.style.display = 'block';
+
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        analyser = audioContext.createAnalyser();
+        source = audioContext.createMediaElementSource(audio);
         source.connect(analyser);
         analyser.connect(audioContext.destination);
 
@@ -93,15 +110,18 @@
             draw();
         }
 
-        audio.onerror = function() {
+        audio.onerror = function () {
             console.log('An error occurred with the audio stream, attempting to reload...');
             audio.load();
             audio.play();
         };
 
         setInterval(function () {
-            cam.src = "http://baby-monitor.local:8080/cam_pic.php?" + new Date().getTime();
+            // cam.src = "http://baby-monitor.local:8080/cam_pic.php?" + new Date().getTime();
         }, 100);
-    </script>
+
+        audio.play();
+    }
+</script>
 </body>
 </html>
