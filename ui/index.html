@@ -62,7 +62,7 @@
 <div class="container">
     <h1>Baby Monitor</h1>
     <img id="cam" src="http://baby-monitor.local:8082/cam_pic.php" alt="Camera Image">
-    <audio id="audio" controls crossOrigin="anonymous">
+    <audio id="audio" controls crossOrigin="anonymous" autoplay>
         <source src="http://baby-monitor.local:8080/stream" type="audio/wav">
         Your browser does not support the audio tag.
     </audio>
@@ -113,18 +113,49 @@
     let analyser;
     let source;
 
+    audio.preload = 'none';
     startButton.onclick = function () {
         startButton.style.display = 'none';
         audio.style.display = 'block';
 
+        // Create a new AudioContext
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+        // Create a new MediaElementAudioSourceNode
+        source = audioContext.createMediaElementSource(audio);
+
+        // Create a BiquadFilterNode
+        let lowpass = audioContext.createBiquadFilter();
+
+        // Configure the filter
+        lowpass.type = 'lowpass'; // Low-pass filter. See BiquadFilterNode docs
+        lowpass.frequency.value = 4000; // Set cutoff to 1000 Hz
+
+        // Create a DynamicsCompressorNode
+        let highpass = audioContext.createBiquadFilter();
+
+        // Configure the filter
+        highpass.type = 'highpass'; // High-pass filter. See BiquadFilterNode docs
+        highpass.frequency.value = 1000; // Set cutoff to 1000 Hz
+
+        // let expander = audioContext.createDynamicsCompressor();
+        //
+        // // Configure the expander
+        // expander.threshold.value = -50; // Set threshold to -50 dB
+        // expander.ratio.value = -8; // Set ratio to -8:1
+
+        // Connect the source to the filter, the filter to the compressor, and the compressor to the destination.
+        source.connect(lowpass);
+        lowpass.connect(highpass);
+        // highpass.connect(expander)
+
         let analyserHighRes = audioContext.createAnalyser();
         let analyserLowRes = audioContext.createAnalyser();
 
-        source = audioContext.createMediaElementSource(audio);
-        source.connect(analyserHighRes);
-        source.connect(analyserLowRes);
-        source.connect(audioContext.destination);
+        highpass.connect(analyserHighRes);
+        highpass.connect(analyserLowRes);
+        highpass.connect(audioContext.destination);
+
         analyserHighRes.fftSize = 2048; // Higher resolution for 0-8kHz
         analyserLowRes.fftSize = 512; // Lower resolution for 8-44kHz
 
