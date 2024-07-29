@@ -70,6 +70,39 @@
     <canvas id="canvas"></canvas>
 </div>
 <script>
+    let wakeLock = null;
+
+    async function requestWakeLock() {
+        try {
+            wakeLock = await navigator.wakeLock.request('screen');
+            console.log('Wake Lock is active');
+        } catch (err) {
+            console.error(`${err.name}, ${err.message}`);
+        }
+    }
+
+    function releaseWakeLock() {
+        if (wakeLock !== null) {
+            wakeLock.release()
+                .then(() => {
+                    wakeLock = null;
+                    console.log('Wake Lock is released');
+                });
+        }
+    }
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+            requestWakeLock();
+        } else {
+            releaseWakeLock();
+        }
+    });
+
+    window.addEventListener('load', requestWakeLock);
+    window.addEventListener('beforeunload', releaseWakeLock);
+
+
     let startButton = document.getElementById('startButton');
     let audio = document.getElementById('audio');
     let canvas = document.getElementById('canvas');
