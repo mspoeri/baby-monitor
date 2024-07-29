@@ -107,7 +107,6 @@
     let audio = document.getElementById('audio');
     let canvas = document.getElementById('canvas');
     let context = canvas.getContext('2d');
-    let cam = document.getElementById('cam');
 
     let audioContext;
     let analyser;
@@ -233,12 +232,47 @@
             audio.play();
         };
 
-        setInterval(function () {
-            cam.src = "http://baby-monitor.local:8082/cam_pic.php?" + new Date().getTime();
-        }, 100);
-
         audio.play();
     }
+    let cam = document.getElementById('cam');
+    let loading = false;
+    let lastLoaded = Date.now();
+
+    function loadNewImage() {
+        if (loading) return; // If an image is currently loading, do nothing
+        loading = true; // Set loading to true
+        let newImage = new Image();
+        let timeoutId;
+
+        newImage.onload = function () {
+            clearTimeout(timeoutId); // Clear the timeout if the image loads successfully
+            loading = false; // Set loading to false when the image has loaded
+            cam.src = newImage.src; // Set the src of the cam to the new image
+            let now = Date.now();
+            let timeSinceLastLoad = now - lastLoaded;
+            lastLoaded = now;
+            let delay = Math.max(0, 100 - timeSinceLastLoad); // Calculate the delay, ensuring it's at least 0
+            setTimeout(loadNewImage, delay); // Fetch a new image after the delay
+        };
+
+        newImage.onerror = function () {
+            clearTimeout(timeoutId); // Clear the timeout if an error occurs
+            loading = false; // Set loading to false
+            loadNewImage(); // Start loading a new image
+        };
+
+        // Set a timeout to stop loading the image if it takes more than 5 seconds
+        timeoutId = setTimeout(function () {
+            newImage.src = ''; // Stop loading the current image
+            loading = false; // Set loading to false
+            loadNewImage(); // Start loading a new image
+        }, 5000);
+
+        newImage.src = "http://baby-monitor.local:8082/cam_pic.php?" + new Date().getTime();
+    }
+
+    loadNewImage()
+
 </script>
 </body>
 </html>
