@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/base64"
 	"io"
 	"log/slog"
 	"net"
@@ -75,6 +76,35 @@ func main() {
 		if err != nil {
 			slog.Error("ffmpeg exited with error:", err)
 		}
+	})
+
+	http.HandleFunc("/image", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET")
+		w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding")
+
+		// no cache header
+		w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate")
+		w.Header().Set("Pragma", "no-cache")
+		w.Header().Set("Expires", "0")
+
+		cmd := exec.Command("raspistill", "-o", "-")
+		stdout, err := cmd.Output()
+		if err != nil {
+			slog.Error("StdoutPipe error:", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		// stdout to base64
+		encoded := base64.StdEncoding.EncodeToString(stdout)
+		w.Header().Set("Content-Type", "image/jpeg")
+		_, err = w.Write([]byte(encoded))
+		if err != nil {
+			slog.Error("Write error:", err)
+			return
+		}
+
 	})
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
